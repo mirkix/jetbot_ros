@@ -2,6 +2,7 @@
 import rospy
 import time
 
+import ina219
 import Adafruit_SSD1306
 
 from PIL import Image
@@ -27,7 +28,7 @@ def get_network_interface_state(interface):
 user_text=None
 
 def on_user_text(msg):
-	global user_text	
+	global user_text
 	user_text=msg.data
 
 	rospy.loginfo(rospy.get_caller_id() + ' user_text=%s', msg.data)
@@ -35,6 +36,7 @@ def on_user_text(msg):
 
 # initialization
 if __name__ == '__main__':
+	ina = ina219.INA219(addr=0x41)
 
 	# 128x32 display with hardware I2C:
 	disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=1, gpio=1) # setting gpio to 1 is hack to avoid platform detection
@@ -75,7 +77,7 @@ if __name__ == '__main__':
 
 	# start running
 	while not rospy.core.is_shutdown():
-            
+
 		# Draw a black filled box to clear the image.
 		draw.rectangle((0,0,width,height), outline=0, fill=0)
 
@@ -92,15 +94,15 @@ if __name__ == '__main__':
 			draw.text((x, top), user_text,  font=font, fill=255)
 		else:
 			draw.text((x, top), "eth0: " + str(get_ip_address('eth0')), font=font, fill=255)
-		
 		draw.text((x, top+8),  "wlan0: " + str(get_ip_address('wlan0')), font=font, fill=255)
 		draw.text((x, top+16), str(MemUsage.decode('utf-8')),  font=font, fill=255)
-		draw.text((x, top+25), str(Disk.decode('utf-8')),  font=font, fill=255)
+#		draw.text((x, top+25), str(Disk.decode('utf-8')),  font=font, fill=255)
+		draw.text((x, top+25), str(float("{:.1f}".format(ina.getBusVoltage_V()))) + " V  " + str(float("{:.1f}".format(ina.getCurrent_mA()))) + " mA",  font=font, fill=255)
 
 		# Display image.
 		disp.image(image)
 		disp.display()
-		
+
 		# Update ROS
 		rospy.rostime.wallsleep(1.0)
 
